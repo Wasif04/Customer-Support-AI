@@ -80,3 +80,21 @@ body {
 }
 
 
+/* Media query for smaller screens */
+@media (max-width: 600px) {
+  .line {
+    display: none; /* Hide the lines on smaller screens */
+  }
+
+  body {
+    font-size: 14px; /* Adjust font size for smaller screens */
+  }
+
+  .MuiTextField-root {
+    width: 100% !important; /* Ensure the input field spans the full width */
+  }
+
+  .MuiButton-root {
+    width: 100%; /* Ensure the button spans the full width */
+  }
+}
