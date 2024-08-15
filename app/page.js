@@ -1,9 +1,20 @@
 'use client'
 import { Box, Button, Stack, TextField } from '@mui/material';
 import { useState, useRef, useEffect } from "react";
+import { Amplify, Auth } from 'aws-amplify';
+import awsconfig from './aws-exports'; 
 import "./globals.css"; 
 
+Amplify.configure(awsconfig);
+
 export default function Home() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [formType, setFormType] = useState('signIn');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmationCode, setConfirmationCode] = useState(''); // New state for confirmation code
+  const [error, setError] = useState('');
+
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -13,6 +24,47 @@ export default function Home() {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const handleSignUp = async () => {
+    try {
+      await Auth.signUp({
+        username: email,
+        password,
+        attributes: {
+          email,
+        }
+      });
+      setFormType('confirmSignUp'); // Change form to confirmation code input
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  const handleConfirmSignUp = async () => {
+    try {
+      await Auth.confirmSignUp(email, confirmationCode);
+      setFormType('signIn'); // After confirmation, switch back to sign-in
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  const handleSignIn = async () => {
+    try {
+      await Auth.signIn(email, password);
+      setIsAuthenticated(true);
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      await Auth.signOut();
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
   const sendMessage = async () => {
     if (!message.trim()) return;  
     setIsLoading(true);
@@ -80,8 +132,224 @@ export default function Home() {
     }
   };
 
+  if (!isAuthenticated) {
+    return (
+      <Box
+        width="100vw"
+        height="100vh"
+        display="flex"
+        flexDirection="column"
+        justifyContent="center"
+        alignItems="center"
+        bgcolor="#171717"
+        style={{
+          fontFamily: "'Poppins', sans-serif"
+        }}
+      >
+        <Stack
+          direction={'column'}
+          width="400px"
+          height="400px"
+          border="2px solid rgba(255, 255, 255, 0.2)"
+          borderRadius="12px"
+          p={2}
+          spacing={3}
+          bgcolor="rgba(23, 23, 23, 0.9)"
+          boxShadow="0px 0px 15px rgba(255, 255, 255, 0.1)"
+          zIndex={1}
+        >
+          {formType === 'signIn' && (
+            <>
+              <h2 style={{ color: 'white', textAlign: 'center' }}>Sign In</h2>
+              <TextField
+                label="Email"
+                variant="outlined"
+                fullWidth
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                InputProps={{
+                  style: {
+                    color: 'white',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    boxSizing: 'border-box',
+                    fontFamily: "'Poppins', sans-serif",
+                  },
+                }}
+                InputLabelProps={{
+                  style: { color: 'rgba(255, 255, 255, 0.5)', fontFamily: "'Poppins', sans-serif" },
+                }}
+              />
+              <TextField
+                label="Password"
+                variant="outlined"
+                type="password"
+                fullWidth
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                InputProps={{
+                  style: {
+                    color: 'white',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    boxSizing: 'border-box',
+                    fontFamily: "'Poppins', sans-serif",
+                  },
+                }}
+                InputLabelProps={{
+                  style: { color: 'rgba(255, 255, 255, 0.5)', fontFamily: "'Poppins', sans-serif" },
+                }}
+              />
+              <Button
+                variant="contained"
+                onClick={handleSignIn}
+                style={{
+                  backgroundColor: 'rgba(0, 150, 255, 0.5)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  boxShadow: '0px 0px 10px rgba(0, 150, 255, 0.5)',
+                  fontFamily: "'Poppins', sans-serif",
+                }}
+              >
+                Sign In
+              </Button>
+              <p style={{ color: 'white', textAlign: 'center' }}>
+                Don't have an account? 
+                <Button
+                  onClick={() => setFormType('signUp')}
+                  style={{ color: 'rgba(0, 150, 255, 0.7)', fontFamily: "'Poppins', sans-serif" }}
+                >
+                  Sign Up
+                </Button>
+              </p>
+            </>
+          )}
+
+          {formType === 'signUp' && (
+            <>
+              <h2 style={{ color: 'white', textAlign: 'center' }}>Sign Up</h2>
+              <TextField
+                label="Email"
+                variant="outlined"
+                fullWidth
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                InputProps={{
+                  style: {
+                    color: 'white',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    boxSizing: 'border-box',
+                    fontFamily: "'Poppins', sans-serif",
+                  },
+                }}
+                InputLabelProps={{
+                  style: { color: 'rgba(255, 255, 255, 0.5)', fontFamily: "'Poppins', sans-serif" },
+                }}
+              />
+              <TextField
+                label="Password"
+                variant="outlined"
+                type="password"
+                fullWidth
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                InputProps={{
+                  style: {
+                    color: 'white',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    boxSizing: 'border-box',
+                    fontFamily: "'Poppins', sans-serif",
+                  },
+                }}
+                InputLabelProps={{
+                  style: { color: 'rgba(255, 255, 255, 0.5)', fontFamily: "'Poppins', sans-serif" },
+                }}
+              />
+              <Button
+                variant="contained"
+                onClick={handleSignUp}
+                style={{
+                  backgroundColor: 'rgba(0, 150, 255, 0.5)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  boxShadow: '0px 0px 10px rgba(0, 150, 255, 0.5)',
+                  fontFamily: "'Poppins', sans-serif",
+                }}
+              >
+                Sign Up
+              </Button>
+              <p style={{ color: 'white', textAlign: 'center' }}>
+                Already have an account? 
+                <Button
+                  onClick={() => setFormType('signIn')}
+                  style={{ color: 'rgba(0, 150, 255, 0.7)', fontFamily: "'Poppins', sans-serif" }}
+                >
+                  Sign In
+                </Button>
+              </p>
+            </>
+          )}
+
+          {formType === 'confirmSignUp' && (
+            <>
+              <h2 style={{ color: 'white', textAlign: 'center' }}>Confirm Sign Up</h2>
+              <TextField
+                label="Confirmation Code"
+                variant="outlined"
+                fullWidth
+                value={confirmationCode}
+                onChange={(e) => setConfirmationCode(e.target.value)}
+                InputProps={{
+                  style: {
+                    color: 'white',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    boxSizing: 'border-box',
+                    fontFamily: "'Poppins', sans-serif",
+                  },
+                }}
+                InputLabelProps={{
+                  style: { color: 'rgba(255, 255, 255, 0.5)', fontFamily: "'Poppins', sans-serif" },
+                }}
+              />
+              <Button
+                variant="contained"
+                onClick={handleConfirmSignUp}
+                style={{
+                  backgroundColor: 'rgba(0, 150, 255, 0.5)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  boxShadow: '0px 0px 10px rgba(0, 150, 255, 0.5)',
+                  fontFamily: "'Poppins', sans-serif",
+                }}
+              >
+                Confirm Sign Up
+              </Button>
+            </>
+          )}
+
+          {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
+        </Stack>
+      </Box>
+    );
+  }
+
   return (
-    
     <Box
       width="100vw"
       height="100vh"
@@ -89,10 +357,10 @@ export default function Home() {
       flexDirection="column"
       justifyContent="center"
       alignItems="center"
-      bgcolor="#171717" 
+      bgcolor="#171717"
       style={{
-    fontFamily: "'Poppins', sans-serif"
-  }}
+        fontFamily: "'Poppins', sans-serif"
+      }}
     >
       <div className="lines">
         <div className="line"></div>
@@ -102,6 +370,20 @@ export default function Home() {
         <div className="line"></div>
         <div className="line"></div>
       </div>
+      <Button
+  variant="contained"
+  onClick={signOut}  
+  style={{
+    backgroundColor: 'rgba(255, 0, 0, 0.5)',
+    color: 'white',
+    borderRadius: '8px',
+    fontFamily: "'Poppins', sans-serif",
+    marginTop: '20px'
+  }}
+>
+  Log Out
+</Button>
+      
       <Stack
         direction={'column'}
         width="500px"
@@ -110,9 +392,9 @@ export default function Home() {
         borderRadius="12px"
         p={2}
         spacing={3}
-        bgcolor="rgba(23, 23, 23, 0.9)" 
-        boxShadow="0px 0px 15px rgba(255, 255, 255, 0.1)" 
-        zIndex={1} 
+        bgcolor="rgba(23, 23, 23, 0.9)"
+        boxShadow="0px 0px 15px rgba(255, 255, 255, 0.1)"
+        zIndex={1}
       >
         <Stack
           direction={'column'}
@@ -205,3 +487,4 @@ export default function Home() {
     </Box>
   );
 }
+
